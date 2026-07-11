@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Stage = "source" | "core" | "eval" | "runframe" | "cli" | "released";
 
@@ -37,7 +37,7 @@ const shipped = (title: string, repo: string, pr: number, author: string, merged
   release,
 });
 
-const features: Feature[] = [
+const fallbackFeatures: Feature[] = [
   {
     title: "Add crystal maxTraceLength prop",
     repo: "props",
@@ -175,6 +175,11 @@ const features: Feature[] = [
 
 const stageIndex = (stage: Stage) => stages.findIndex((item) => item.id === stage);
 
+function formatUpdatedAt(value: string | null) {
+  if (!value) return "Auto-refresh · every 5 min";
+  return `Updated ${new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" }).format(new Date(value))} PT · every 5 min`;
+}
+
 function FeatureCard({ feature, compact = false }: { feature: Feature; compact?: boolean }) {
   return (
     <article className={`feature-card ${compact ? "compact" : ""}`}>
@@ -197,15 +202,41 @@ function FeatureCard({ feature, compact = false }: { feature: Feature; compact?:
 export default function Home() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "moving" | "released">("all");
+  const [liveFeatures, setLiveFeatures] = useState<Feature[]>(fallbackFeatures);
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      try {
+        const response = await fetch("/api/features", { cache: "no-store" });
+        if (!response.ok) return;
+        const payload = (await response.json()) as { features?: Feature[]; updatedAt?: string };
+        if (active && payload.features?.length) {
+          setLiveFeatures(payload.features);
+          setUpdatedAt(payload.updatedAt ?? new Date().toISOString());
+        }
+      } catch {
+        // Keep the last successful data set when GitHub is temporarily unavailable.
+      }
+    };
+
+    void refresh();
+    const interval = window.setInterval(refresh, 300_000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    return features.filter((feature) => {
+    return liveFeatures.filter((feature) => {
       const matchesQuery = !normalized || `${feature.title} ${feature.repo} ${feature.pr} ${feature.author}`.toLowerCase().includes(normalized);
       const matchesFilter = filter === "all" || (filter === "released" ? feature.stage === "released" : feature.stage !== "released");
       return matchesQuery && matchesFilter;
     });
-  }, [query, filter]);
+  }, [query, filter, liveFeatures]);
 
   const moving = visible.filter((feature) => feature.stage !== "released");
   const released = visible.filter((feature) => feature.stage === "released");
@@ -219,7 +250,7 @@ export default function Home() {
         </a>
         <div className="header-meta">
           <span className="live-dot" />
-          Snapshot · Jul 11, 2026 · 4:05 PM PT
+          {formatUpdatedAt(updatedAt)}
         </div>
       </header>
 
@@ -230,8 +261,8 @@ export default function Home() {
           <a href="https://docs.tscircuit.com/contributing/package-dependencies-and-auto-updates" target="_blank" rel="noreferrer">How the pipeline works ↗</a>
         </div>
         <div className="stats" aria-label="Release statistics">
-          <div><strong>{features.filter((item) => item.stage !== "released").length}</strong><span>moving downstream</span></div>
-          <div><strong>{features.filter((item) => item.stage === "released").length}</strong><span>recently released</span></div>
+          <div><strong>{liveFeatures.filter((item) => item.stage !== "released").length}</strong><span>moving downstream</span></div>
+          <div><strong>{liveFeatures.filter((item) => item.stage === "released").length}</strong><span>recently released</span></div>
           <div><strong>6</strong><span>release stages</span></div>
           <div><strong>CI</strong><span>gates every handoff</span></div>
         </div>
@@ -314,7 +345,7 @@ export default function Home() {
 
       <footer>
         <div><span className="brand-mark small"><i /><i /><i /></span><strong>tscircuit release tracker</strong></div>
-        <p>Release position is inferred from merged feature PRs and automated dependency-update PRs. Source snapshot: GitHub, Jul 11, 2026.</p>
+        <p>Release position is inferred from merged feature PRs and automated dependency-update PRs. GitHub data refreshes every five minutes.</p>
         <a href="https://github.com/tscircuit" target="_blank" rel="noreferrer">tscircuit on GitHub ↗</a>
       </footer>
     </main>
