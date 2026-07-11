@@ -25,6 +25,18 @@ const stages: { id: Stage; short: string; label: string }[] = [
   { id: "released", short: "06", label: "Released" },
 ];
 
+const shipped = (title: string, repo: string, pr: number, author: string, merged: string, release: string): Feature => ({
+  title,
+  repo,
+  pr,
+  url: `https://github.com/tscircuit/${repo}/pull/${pr}`,
+  author,
+  merged,
+  stage: "released",
+  note: "Published by its package or propagated to a downstream release surface.",
+  release,
+});
+
 const features: Feature[] = [
   {
     title: "Add crystal maxTraceLength prop",
@@ -132,6 +144,33 @@ const features: Feature[] = [
     note: "Merged on the web release surface; available without another package hop.",
     release: "tscircuit.com",
   },
+  shipped("Fix mirrored custom pad polygons on rotated footprints", "kicad-to-circuit-json", 167, "ShiboSoftwareDev", "Jul 11 · 3:18 PM PT", "package release"),
+  shipped("Fix browser 3D PNG rendering by removing Node-only PoppyGL exports", "poppygl", 32, "rushabhcodes", "Jul 11 · 2:59 PM PT", "poppygl v0.0.25"),
+  shipped("Use browser-safe PoppyGL rendering for STEP PNG snapshots", "circuit-json-to-step", 119, "rushabhcodes", "Jul 11 · 1:26 PM PT", "package release"),
+  shipped("Use sharp-free Manifold 2D package", "copper-pour-solver", 59, "seveibar", "Jul 11 · 1:26 PM PT", "solver v0.0.37"),
+  shipped("Fix KiCad connectivity conversion and validation", "kicad-to-circuit-json", 163, "ShiboSoftwareDev", "Jul 10 · 2:19 PM PT", "package release"),
+  shipped("Support net on gr_arc PCB graphics", "kicadts", 58, "mohan-bee", "Jul 11 · 4:30 AM PT", "package release"),
+  shipped("Add a solver to merge global and component topologies in Pipeline 7", "tscircuit-autorouter", 1592, "ShiboSoftwareDev", "Jul 11 · 10:30 AM PT", "autorouter v0.0.655+"),
+  shipped("Add differentialPairs and DifferentialPair interface", "tscircuit-autorouter", 1583, "seveibar", "Jul 10 · 12:17 PM PT", "autorouter release"),
+  shipped("Support standalone simulation graph SVG URLs", "svg.tscircuit.com", 1763, "ShiboSoftwareDev", "Jul 10 · 7:44 PM PT", "svg.tscircuit.com"),
+  shipped("Support default autorouter", "core", 2635, "seveibar", "Jul 10 · 11:26 AM PT", "tscircuit v0.1.1639+"),
+  shipped("Add MOSFET connections support", "props", 720, "seveibar", "Jul 11 · 9:55 AM PT", "props release"),
+  shipped("Fix workspace path normalization for nested files", "monaco-code-editor", 28, "rushabhcodes", "Jul 9 · 7:58 PM PT", "editor release"),
+  shipped("Fix package exports for component-library consumption", "monaco-code-editor", 23, "rushabhcodes", "Jul 9 · 5:55 PM PT", "editor release"),
+  shipped("Fix invisible hover and selected states in file sidebar", "monaco-code-editor", 24, "mohan-bee", "Jul 9 · 5:24 PM PT", "editor release"),
+  shipped("Fix browser CDN fallback for GLTF loading", "circuit-json-to-3d-png", 13, "rushabhcodes", "Jul 9 · 10:57 PM PT", "package release"),
+  shipped("Fix RP2350 footprint conversion from KiCad", "kicad-to-circuit-json", 162, "seveibar", "Jul 9 · 9:52 PM PT", "package release"),
+  shipped("Mirror bottom-layer PCB silkscreen text", "circuit-json-to-kicad", 373, "techmannih", "Jul 9 · 8:36 PM PT", "tscircuit v0.1.1640"),
+  shipped("Give each pushed trace its own corridor near shared net labels", "schematic-trace-solver", 649, "abdalraof-albarbar", "Jul 9 · 1:24 PM PT", "solver release"),
+  shipped("Snap power and ground labels to a pin-aligned corner", "schematic-trace-solver", 654, "MustafaMulla29", "Jul 10 · 3:51 AM PT", "solver release"),
+  shipped("Add ratsnest-free solver visualizations for bug snapshots", "schematic-trace-solver", 646, "AnasSarkiz", "Jul 10 · 5:17 AM PT", "solver release"),
+  shipped("Lay out decoupling capacitor groups as rail rows", "matchpack", 155, "MustafaMulla29", "Jul 10 · 10:02 AM PT", "matchpack release"),
+  shipped("Add autorouter debug messages", "cli", 3606, "seveibar", "Jul 9 · 5:24 PM PT", "CLI v0.1.1639+"),
+  shipped("Externalize check-shorts from the CLI bundle", "cli", 3616, "Abse2001", "Jul 10 · 6:18 AM PT", "CLI v0.1.1642"),
+  shipped("Add a name to autorouting phases", "props", 719, "seveibar", "Jul 9 · 11:03 PM PT", "props release"),
+  shipped("Allow SymbolProp to accept circuit-json element arrays", "props", 718, "techmannih", "Jul 9 · 8:15 PM PT", "props release"),
+  shipped("Support legacy KiCad 5 standalone footprints", "kicad-to-circuit-json", 160, "techmannih", "Jul 9 · 8:24 AM PT", "package release"),
+  shipped("Subtract edge cutouts from board outlines", "circuit-json-to-kicad", 365, "mohan-bee", "Jul 9 · 1:29 AM PT", "package release"),
 ];
 
 const stageIndex = (stage: Stage) => stages.findIndex((item) => item.id === stage);
@@ -174,9 +213,9 @@ export default function Home() {
   return (
     <main>
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="Signalpath home">
+        <a className="brand" href="#top" aria-label="tscircuit release tracker home">
           <span className="brand-mark"><i /><i /><i /></span>
-          <span>signalpath</span>
+          <span>tscircuit release tracker</span>
         </a>
         <div className="header-meta">
           <span className="live-dot" />
@@ -185,7 +224,7 @@ export default function Home() {
       </header>
 
       <section className="hero" id="top">
-        <div className="eyebrow">tscircuit release intelligence</div>
+        <div className="eyebrow">feature delivery status</div>
         <div className="hero-grid">
           <h1>See what’s shipping.<br /><em>And what’s stuck.</em></h1>
           <div className="hero-copy">
@@ -259,12 +298,17 @@ export default function Home() {
             <div><span className="kicker">Now available</span><h2>Recently released</h2></div>
             <p>Feature work that completed the dependency chain or landed directly on a release surface.</p>
           </div>
-          <div className="release-grid">
+          <div className="release-table" role="list">
             {released.map((feature, index) => (
-              <div className="release-item" key={`${feature.repo}-${feature.pr}`}>
+              <a className="release-row" href={feature.url} target="_blank" rel="noreferrer" key={`${feature.repo}-${feature.pr}`} role="listitem">
                 <span className="release-number">{String(index + 1).padStart(2, "0")}</span>
-                <FeatureCard feature={feature} compact />
-              </div>
+                <span className="release-repo">{feature.repo}</span>
+                <strong>{feature.title}</strong>
+                <span className="release-pr">#{feature.pr}</span>
+                <span className="release-author">@{feature.author}</span>
+                <span className="release-tag">{feature.release}</span>
+                <span className="release-arrow">↗</span>
+              </a>
             ))}
             {released.length === 0 && <div className="empty dark">No released features match this search.</div>}
           </div>
@@ -272,7 +316,7 @@ export default function Home() {
       )}
 
       <footer>
-        <div><span className="brand-mark small"><i /><i /><i /></span><strong>signalpath</strong></div>
+        <div><span className="brand-mark small"><i /><i /><i /></span><strong>tscircuit release tracker</strong></div>
         <p>Release position is inferred from merged feature PRs and automated dependency-update PRs. Source snapshot: GitHub, Jul 11, 2026.</p>
         <a href="https://github.com/tscircuit" target="_blank" rel="noreferrer">tscircuit on GitHub ↗</a>
       </footer>

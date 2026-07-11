@@ -19,10 +19,11 @@ test("server-renders the release tracker", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /Signalpath — tscircuit Release Tracker/i);
+  assert.match(html, /<title>tscircuit release tracker<\/title>/i);
   assert.match(html, /See what’s shipping/i);
   assert.match(html, /Release pipeline/i);
   assert.match(html, /Recently released/i);
+  assert.match(html, /Fix workspace path normalization for nested files/i);
   assert.match(html, /github\.com\/tscircuit\/core\/pull\/2640/i);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/i);
 });
