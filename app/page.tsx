@@ -224,13 +224,10 @@ export default function Home() {
       </header>
 
       <section className="hero" id="top">
-        <div className="eyebrow">feature delivery status</div>
-        <div className="hero-grid">
-          <h1>See what’s shipping.<br /><em>And what’s stuck.</em></h1>
-          <div className="hero-copy">
-            <p>Feature PRs, translated into a live-looking view of the automated package pipeline—from first merge to a release users can install.</p>
-            <a href="https://docs.tscircuit.com/contributing/package-dependencies-and-auto-updates" target="_blank" rel="noreferrer">How the pipeline works ↗</a>
-          </div>
+        <div className="intro-strip">
+          <div className="eyebrow">feature delivery status</div>
+          <p>Feature PRs mapped across the automated package pipeline—from first merge to a release users can install.</p>
+          <a href="https://docs.tscircuit.com/contributing/package-dependencies-and-auto-updates" target="_blank" rel="noreferrer">How the pipeline works ↗</a>
         </div>
         <div className="stats" aria-label="Release statistics">
           <div><strong>{features.filter((item) => item.stage !== "released").length}</strong><span>moving downstream</span></div>

@@ -19,13 +19,13 @@ export async function generateMetadata(): Promise<Metadata> {
     icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
     openGraph: {
       title: "tscircuit release tracker",
-      description: "See what’s shipping—and what’s stuck—in the tscircuit release pipeline.",
+      description: "Follow feature PRs through the tscircuit package release pipeline.",
       images: [{ url: "/og.png", width: 1200, height: 630, alt: "tscircuit release tracker" }],
     },
     twitter: {
       card: "summary_large_image",
       title: "tscircuit release tracker",
-      description: "See what’s shipping—and what’s stuck—in the tscircuit release pipeline.",
+      description: "Follow feature PRs through the tscircuit package release pipeline.",
       images: ["/og.png"],
     },
   };
