@@ -18,6 +18,7 @@ type Feature = {
   url: string;
   author: string;
   merged: string;
+  mergedAt: string;
   stage: Stage;
   note: string;
   release?: string;
@@ -135,6 +136,7 @@ async function buildPayload(): Promise<Payload> {
         url: item.html_url,
         author: item.user?.login ?? "unknown",
         merged: formatPacific(item.closed_at),
+        mergedAt: item.closed_at,
         stage,
         note: stage === "released" ? "Published by its package or propagated to a downstream release surface." : `Latest verified position: ${stage}.`,
         release: releaseLabel(repo, stage),

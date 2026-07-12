@@ -11,6 +11,7 @@ type Feature = {
   url: string;
   author: string;
   merged: string;
+  mergedAt?: string;
   stage: Stage;
   note: string;
   release?: string;
@@ -202,6 +203,11 @@ function FeatureCard({ feature, compact = false }: { feature: Feature; compact?:
 export default function Home() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "moving" | "released">("all");
+  const [author, setAuthor] = useState("all");
+  const [mergedWindow, setMergedWindow] = useState<"newest" | "24h" | "7d" | "30d">("newest");
+  const [selectedRepos, setSelectedRepos] = useState<Set<string> | null>(null);
+  const [repoMenuOpen, setRepoMenuOpen] = useState(false);
+  const [repoQuery, setRepoQuery] = useState("");
   const [liveFeatures, setLiveFeatures] = useState<Feature[]>(fallbackFeatures);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
@@ -229,14 +235,35 @@ export default function Home() {
     };
   }, []);
 
+  const authors = useMemo(() => [...new Set(liveFeatures.map((feature) => feature.author))].sort((a, b) => a.localeCompare(b)), [liveFeatures]);
+  const repos = useMemo(() => [...new Set(liveFeatures.map((feature) => feature.repo))].sort((a, b) => a.localeCompare(b)), [liveFeatures]);
+  const visibleRepos = useMemo(() => repos.filter((repo) => repo.includes(repoQuery.trim().toLowerCase())), [repos, repoQuery]);
+
+  const toggleRepo = (repo: string) => {
+    setSelectedRepos((current) => {
+      const next = current === null ? new Set(repos) : new Set(current);
+      if (next.has(repo)) next.delete(repo);
+      else next.add(repo);
+      return next.size === repos.length ? null : next;
+    });
+  };
+
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase();
+    const cutoff = mergedWindow === "24h" ? Date.now() - 86_400_000
+      : mergedWindow === "7d" ? Date.now() - 7 * 86_400_000
+      : mergedWindow === "30d" ? Date.now() - 30 * 86_400_000
+      : 0;
+
     return liveFeatures.filter((feature) => {
       const matchesQuery = !normalized || `${feature.title} ${feature.repo} ${feature.pr} ${feature.author}`.toLowerCase().includes(normalized);
       const matchesFilter = filter === "all" || (filter === "released" ? feature.stage === "released" : feature.stage !== "released");
-      return matchesQuery && matchesFilter;
-    });
-  }, [query, filter, liveFeatures]);
+      const matchesAuthor = author === "all" || feature.author === author;
+      const matchesRepo = selectedRepos === null || selectedRepos.has(feature.repo);
+      const matchesMerged = cutoff === 0 || (!!feature.mergedAt && new Date(feature.mergedAt).getTime() >= cutoff);
+      return matchesQuery && matchesFilter && matchesAuthor && matchesRepo && matchesMerged;
+    }).sort((a, b) => new Date(b.mergedAt ?? 0).getTime() - new Date(a.mergedAt ?? 0).getTime());
+  }, [query, filter, author, mergedWindow, selectedRepos, liveFeatures]);
 
   const moving = visible.filter((feature) => feature.stage !== "released");
   const released = visible.filter((feature) => feature.stage === "released");
@@ -269,17 +296,71 @@ export default function Home() {
       </section>
 
       <section className="controls" aria-label="Feature filters">
-        <div className="segmented">
-          {(["all", "moving", "released"] as const).map((value) => (
-            <button key={value} className={filter === value ? "active" : ""} onClick={() => setFilter(value)}>
-              {value === "all" ? "All features" : value === "moving" ? "In pipeline" : "Released"}
+        <div className="filter-cluster">
+          <div className="segmented">
+            {(["all", "moving", "released"] as const).map((value) => (
+              <button key={value} className={filter === value ? "active" : ""} onClick={() => setFilter(value)}>
+                {value === "all" ? "All" : value === "moving" ? "In pipeline" : "Released"}
+              </button>
+            ))}
+          </div>
+
+          <label className="filter-field">
+            <span>Author</span>
+            <select value={author} onChange={(event) => setAuthor(event.target.value)}>
+              <option value="all">All authors</option>
+              {authors.map((name) => <option value={name} key={name}>@{name}</option>)}
+            </select>
+          </label>
+
+          <label className="filter-field">
+            <span>Merged</span>
+            <select value={mergedWindow} onChange={(event) => setMergedWindow(event.target.value as typeof mergedWindow)}>
+              <option value="newest">Newest first</option>
+              <option value="24h">Past 24 hours</option>
+              <option value="7d">Past 7 days</option>
+              <option value="30d">Past 30 days</option>
+            </select>
+          </label>
+
+          <div className="repo-filter">
+            <span className="filter-label">Repo</span>
+            <button className="repo-trigger" type="button" aria-expanded={repoMenuOpen} onClick={() => setRepoMenuOpen((open) => !open)}>
+              {selectedRepos === null ? "All repos" : selectedRepos.size === 0 ? "No repos" : `${selectedRepos.size} repos`} <span>⌄</span>
             </button>
-          ))}
+            {repoMenuOpen && (
+              <div className="repo-menu">
+                <div className="repo-menu-actions">
+                  <button type="button" onClick={() => setSelectedRepos(null)}>Select all</button>
+                  <button type="button" onClick={() => setSelectedRepos(new Set())}>Deselect all</button>
+                </div>
+                <label className="repo-search">
+                  <span>⌕</span>
+                  <input value={repoQuery} onChange={(event) => setRepoQuery(event.target.value.toLowerCase())} placeholder="Search repos…" aria-label="Search repositories" />
+                </label>
+                <div className="repo-options">
+                  {visibleRepos.map((repo) => (
+                    <label key={repo}>
+                      <input type="checkbox" checked={selectedRepos === null || selectedRepos.has(repo)} onChange={() => toggleRepo(repo)} />
+                      <span>{repo}</span>
+                    </label>
+                  ))}
+                  {visibleRepos.length === 0 && <small>No matching repos</small>}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <label className="search">
-          <span>⌕</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search PR, repo, author…" aria-label="Search features" />
-        </label>
+        <div className="search-group">
+          <span className="result-count">{visible.length} results</span>
+          <label className="search">
+            <span>⌕</span>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search features…" aria-label="Search features" />
+          </label>
+          {(filter !== "all" || author !== "all" || mergedWindow !== "newest" || selectedRepos !== null || query) && (
+            <button className="clear-filters" type="button" onClick={() => { setFilter("all"); setAuthor("all"); setMergedWindow("newest"); setSelectedRepos(null); setQuery(""); }}>Clear</button>
+          )}
+        </div>
       </section>
 
       {filter !== "released" && (
