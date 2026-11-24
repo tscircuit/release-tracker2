@@ -1,3 +1,5 @@
+import { titleMentionsPackage } from "./package-title";
+
 type Stage = "source" | "core" | "eval" | "runframe" | "cli" | "released";
 
 type GitHubItem = {
@@ -41,6 +43,12 @@ function newest(items: GitHubItem[], repo: string, titleIncludes: string) {
     .reduce((latest, item) => Math.max(latest, timestamp(item.closed_at)), 0);
 }
 
+function newestPackagePickup(items: GitHubItem[], repo: string, packageName: string) {
+  return items
+    .filter((item) => repoName(item) === repo && titleMentionsPackage(item.title, packageName))
+    .reduce((latest, item) => Math.max(latest, timestamp(item.closed_at)), 0);
+}
+
 function formatPacific(value: string) {
   const date = new Date(value);
   const day = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" }).format(date);
@@ -77,12 +85,12 @@ function featureStage(item: GitHubItem, botItems: GitHubItem[], boundaries: Reco
   if (repo === "core") return progressFromCore(mergedAt, boundaries);
 
   if (CORE_SOURCES.has(repo)) {
-    const corePickup = newest(botItems, "core", repo);
+    const corePickup = newestPackagePickup(botItems, "core", repo);
     return !corePickup || mergedAt > corePickup ? "source" : progressFromCore(corePickup, boundaries);
   }
 
   if (RUNFRAME_SOURCES.has(repo)) {
-    const runframePickup = newest(botItems, "runframe", repo);
+    const runframePickup = newestPackagePickup(botItems, "runframe", repo);
     return !runframePickup || mergedAt > runframePickup ? "source" : progressFromRunframe(runframePickup, boundaries);
   }
 
@@ -118,9 +126,9 @@ async function buildPayload(): Promise<Payload> {
   const botItems = botSearch.items;
   const boundaries = {
     eval: newest(botItems, "eval", "update packages"),
-    runframe: newest(botItems, "runframe", "@tscircuit/eval"),
-    cli: newest(botItems, "cli", "@tscircuit/runframe"),
-    tscircuit: newest(botItems, "tscircuit", "@tscircuit/cli"),
+    runframe: newestPackagePickup(botItems, "runframe", "@tscircuit/eval"),
+    cli: newestPackagePickup(botItems, "cli", "@tscircuit/runframe"),
+    tscircuit: newestPackagePickup(botItems, "tscircuit", "@tscircuit/cli"),
   };
 
   const ignored = /^(chore|test\b|repro\b|fix type errors|sync bun|remove unused|update .*dependenc|bump )/i;
